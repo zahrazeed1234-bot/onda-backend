@@ -1,4 +1,5 @@
 from rest_framework import viewsets, status, permissions
+from rest_framework import generics
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -7,8 +8,8 @@ from django.contrib.auth.models import Group
 
 from .models import User
 from .serializers import (
-    UserSerializer, UserCreateSerializer, UserPasswordChangeSerializer,
-    GroupSerializer, UserSummarySerializer,
+    UserSerializer, UserCreateSerializer, PublicRegistrationSerializer,
+    UserPasswordChangeSerializer, GroupSerializer, UserSummarySerializer,
 )
 from .permissions import IsAdminCNS, IsAdminOrTechnicianReadOnlyForConsultant
 
@@ -28,6 +29,23 @@ class LoginTokenObtainPairView(TokenObtainPairView):
             except Exception:
                 pass
         return response
+
+
+class PublicRegistrationView(generics.CreateAPIView):
+    serializer_class = PublicRegistrationSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return Response(
+            {
+                'detail': 'Compte créé avec succès. Vous pouvez maintenant vous connecter.',
+                'user': UserSerializer(user).data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class UserViewSet(viewsets.ModelViewSet):
